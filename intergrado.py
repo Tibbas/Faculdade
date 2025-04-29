@@ -2,12 +2,48 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import requests
+import os
 
-# --- Conexão com o banco de dados ---
+# --- Criação do banco e dados de teste ---
+def criar_banco_e_inserir_dados():
+    if not os.path.exists("biblioteca.db"):
+        conn = sqlite3.connect("biblioteca.db")
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS emprestimos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome_usuario TEXT NOT NULL,
+            codigo_livro TEXT NOT NULL,
+            titulo_livro TEXT NOT NULL,
+            data_emprestimo TEXT NOT NULL,
+            data_devolucao TEXT,
+            status TEXT NOT NULL,
+            multa REAL DEFAULT 0
+        )
+        """)
+
+        dados = [
+            ("Ana Paula", "L001", "O senhor dos Anéis - A sociedade do Anel", "2024-04-01", "2024-04-15", "Devolvido", 0.0),
+            ("Carlos Silva", "L002", "Harry Potter e a Pedra Filosofal", "2024-04-10", None, "Em aberto", 0.0),
+            ("João Souza", "L003", "Hábitos Atômicos", "2024-03-15", "2024-04-20", "Multa", 12.5),
+            ("Marina Rocha", "L004", "Dom Quixote", "2024-04-05", "2024-04-22", "Devolvido", 0.0),
+        ]
+
+        cursor.executemany("""
+        INSERT INTO emprestimos (nome_usuario, codigo_livro, titulo_livro, data_emprestimo, data_devolucao, status, multa)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, dados)
+
+        conn.commit()
+        conn.close()
+        print("Banco de dados 'biblioteca.db' criado com dados de teste!")
+
+# --- Conexão com o banco ---
 def conectar_bd():
     return sqlite3.connect("biblioteca.db")
 
-# --- Consulta de empréstimos no banco ---
+# --- Consulta de empréstimos ---
 def consultar_acertos(nome_usuario, codigo_livro, status):
     conn = conectar_bd()
     cursor = conn.cursor()
@@ -33,7 +69,7 @@ def consultar_acertos(nome_usuario, codigo_livro, status):
     
     return resultados
 
-# --- Consulta de livros da API ---
+# --- Consulta dos livros via API ---
 def consultar_livros_api():
     try:
         resposta = requests.get("http://localhost:5000/Livros")
@@ -45,7 +81,11 @@ def consultar_livros_api():
         st.error(f"Erro ao consultar API: {e}")
         return []
 
-# --- INTERFACE ---
+# --- INÍCIO DO APLICATIVO ---
+# Criar o banco se não existir
+criar_banco_e_inserir_dados()
+
+# --- INTERFACE STREAMLIT ---
 st.title("📚 Sistema da Biblioteca")
 
 st.markdown("Filtre os acertos por usuário, código do livro ou status:")
@@ -66,7 +106,7 @@ if st.button("Consultar Empréstimos"):
     else:
         st.warning("Nenhum resultado encontrado com os filtros fornecidos.")
 
-# --- Nova seção para mostrar livros disponíveis ---
+# --- Seção de Livros (via API) ---
 st.markdown("---")
 st.header("📖 Livros disponíveis na Biblioteca (via API)")
 
