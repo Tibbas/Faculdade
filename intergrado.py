@@ -1,7 +1,6 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
-import requests
 import os
 
 # --- Criação do banco e dados de teste ---
@@ -37,7 +36,6 @@ def criar_banco_e_inserir_dados():
 
         conn.commit()
         conn.close()
-        print("Banco de dados 'biblioteca.db' criado com dados de teste!")
 
 # --- Conexão com o banco ---
 def conectar_bd():
@@ -69,33 +67,18 @@ def consultar_acertos(nome_usuario, codigo_livro, status):
     
     return resultados
 
-# --- Consulta dos livros via API ---
-def consultar_livros_api():
-    try:
-        resposta = requests.get("http://localhost:5000/Livros")
-        if resposta.status_code == 200:
-            return resposta.json()
-        else:
-            return []
-    except Exception as e:
-        st.error(f"Erro ao consultar API: {e}")
-        return []
-
-# --- INÍCIO DO APLICATIVO ---
-# Criar o banco se não existir
+# --- INÍCIO DO APP ---
 criar_banco_e_inserir_dados()
 
-# --- INTERFACE STREAMLIT ---
+# --- INTERFACE ---
 st.title("📚 Sistema da Biblioteca")
 
 st.markdown("Filtre os acertos por usuário, código do livro ou status:")
 
-# Filtros
 nome_usuario = st.text_input("🔍 Nome do usuário")
 codigo_livro = st.text_input("📕 Código do livro")
 status = st.selectbox("📌 Status do empréstimo", ["Todos", "Em aberto", "Devolvido", "Multa"])
 
-# Botão para consultar empréstimos
 if st.button("Consultar Empréstimos"):
     dados = consultar_acertos(nome_usuario, codigo_livro, status)
 
@@ -105,15 +88,3 @@ if st.button("Consultar Empréstimos"):
         st.dataframe(df)
     else:
         st.warning("Nenhum resultado encontrado com os filtros fornecidos.")
-
-# --- Seção de Livros (via API) ---
-st.markdown("---")
-st.header("📖 Livros disponíveis na Biblioteca (via API)")
-
-livros = consultar_livros_api()
-
-if livros:
-    df_livros = pd.DataFrame(livros)
-    st.dataframe(df_livros)
-else:
-    st.info("Nenhum livro encontrado ou API indisponível.")
